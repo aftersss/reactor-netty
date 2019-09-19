@@ -69,20 +69,13 @@ final class DefaultPoolResources implements PoolResources {
 			Consumer<? super Channel> onChannelCreate,
 			EventLoopGroup group) {
 		SocketAddressHolder holder = new SocketAddressHolder(remote);
-		for (; ; ) {
-			Pool pool = channelPools.get(holder);
-			if (pool != null) {
-				return pool;
-			}
+
+		return channelPools.computeIfAbsent(holder, socketAddressHolder -> {
 			if (log.isDebugEnabled()) {
 				log.debug("New {} client pool for {}", name, remote);
 			}
-			pool = new Pool(bootstrap.get().remoteAddress(remote), provider, onChannelCreate, group);
-			if (channelPools.putIfAbsent(holder, pool) == null) {
-				return pool;
-			}
-			pool.close();
-		}
+			return new Pool(bootstrap.get().remoteAddress(remote), provider, onChannelCreate, group);
+		});
 	}
 
 	@Override
